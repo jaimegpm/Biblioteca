@@ -5,7 +5,8 @@ Proyecto hecho para simplificar conflictos exportando el DWP
 
 ```bash
 # Ruta en el main  
-cd eclipse-workspace/Biblioteca/  
+cd eclipse-workspace/Biblioteca/
+git pull origin main --allow-unrelated-histories
 ```
 
 ## Contenido del .gitignore
