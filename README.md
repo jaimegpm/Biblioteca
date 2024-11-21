@@ -1,5 +1,5 @@
 ## Biblioteca
-Uso personal para trabajar en casa y poder pasarlo sin conflictos.
+Proyecto hecho para simplificar conflictos exportando el DWP
 
 ## Comandos útiles
 
@@ -8,7 +8,7 @@ Uso personal para trabajar en casa y poder pasarlo sin conflictos.
 cd eclipse-workspace/Biblioteca/  
 ```
 
-## Contenido del .git ignore:  
+## Contenido del .gitignore
 ```bash
 # Excluir configuraciones locales y archivos de construcción
 .settings/
