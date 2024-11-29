@@ -247,8 +247,90 @@ public class controlleradmin extends HttpServlet {
                 request.getRequestDispatcher("socios/getlibros.jsp").forward(request, response);
                 break;
 
+            case "filtrarLibros":
+                String filtro = request.getParameter("filtroBusqueda");
+                String criterio = request.getParameter("criterioBusqueda");
 
-          
+                String libroTitulo = null, libroAutor = null, libroIsbn = null;
+
+                // Según el criterio, asignar la búsqueda al campo adecuado
+                if ("titulo".equals(criterio)) {
+                    libroTitulo = filtro;
+                } else if ("autor".equals(criterio)) {
+                    libroAutor = filtro;
+                } else if ("isbn".equals(criterio)) {
+                    libroIsbn = filtro;
+                }
+
+                try {
+                    // Usar el DAO para buscar los libros según los criterios
+                    ArrayList<Libro> libros = daoEjemplar.filtrarLibros(libroAutor, libroTitulo, libroIsbn);
+                    request.setAttribute("libros", libros); // Pasar los libros al JSP
+                } catch (Exception e) {
+                    request.setAttribute("error", "Error al buscar libros: " + e.getMessage());
+                    e.printStackTrace();
+                }
+
+                // Redirigir a la página de resultados
+                request.getRequestDispatcher("admin/eliminarEjemplar.jsp").forward(request, response);
+                break;
+                
+            case "realizarPrestamo":
+                // Obtener los parámetros enviados desde el formulario
+                String codigoSocioParam = request.getParameter("codigoSocio");
+                String codigoEjemplarParam = request.getParameter("codigoEjemplar");
+
+                // Validar los parámetros
+                if (codigoSocioParam == null || codigoSocioParam.isEmpty() || codigoEjemplarParam == null || codigoEjemplarParam.isEmpty()) {
+                    request.setAttribute("error", "Por favor, complete todos los campos.");
+                    request.getRequestDispatcher("admin/prestamo.jsp").forward(request, response);
+                    return;
+                }
+
+                try {
+                    // Convertir los códigos de socio y ejemplar a enteros
+                    int codigoSocio = Integer.parseInt(codigoSocioParam);
+                    int codigoEjemplar = Integer.parseInt(codigoEjemplarParam);
+
+                    // Verificar si el socio tiene préstamos vencidos
+                    boolean socioMoroso = daoSocio.esSocioMoroso(codigoSocio);
+                    if (socioMoroso) {
+                        request.setAttribute("error", "El socio tiene préstamos vencidos y no puede realizar un nuevo préstamo.");
+                        request.getRequestDispatcher("admin/prestamo.jsp").forward(request, response);
+                        return;
+                    }
+
+                    // Verificar si el ejemplar está disponible para préstamo
+                    boolean ejemplarDisponible = daoEjemplar.esEjemplarDisponible(codigoEjemplar);
+                    if (!ejemplarDisponible) {
+                        request.setAttribute("error", "El ejemplar no está disponible para préstamo.");
+                        request.getRequestDispatcher("admin/prestamo.jsp").forward(request, response);
+                        return;
+                    }
+
+                    // Si todo está bien, proceder a crear el préstamo
+                    DaoPrestamo daoPrestamo = new DaoPrestamo();
+                    boolean prestamoRealizado = daoPrestamo.realizarPrestamo(codigoSocio, codigoEjemplar);
+
+                    if (prestamoRealizado) {
+                        request.setAttribute("mensaje", "Préstamo realizado con éxito.");
+                    } else {
+                        request.setAttribute("error", "Error al realizar el préstamo. Intente nuevamente.");
+                    }
+
+                    // Redirigir de vuelta al formulario de préstamo con mensaje de éxito o error
+                    request.getRequestDispatcher("admin/prestamo.jsp").forward(request, response);
+
+                } catch (NumberFormatException e) {
+                    request.setAttribute("error", "Los códigos deben ser números válidos.");
+                    request.getRequestDispatcher("admin/prestamo.jsp").forward(request, response);
+                } catch (SQLException e) {
+                    request.setAttribute("error", "Error al realizar el préstamo: " + e.getMessage());
+                    request.getRequestDispatcher("admin/prestamo.jsp").forward(request, response);
+                }
+                break;
+
+        
         }
     }
 }

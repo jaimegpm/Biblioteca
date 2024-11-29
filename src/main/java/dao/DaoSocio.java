@@ -263,4 +263,28 @@ public class DaoSocio {
 
         return listaSocios;
     }
+    
+    public boolean esSocioMoroso(int codigoSocio) throws SQLException {
+        boolean esMoroso = false;
+        Conexion conexion = new Conexion();
+        String sql = "SELECT COUNT(*) FROM PRESTAMO " +
+                     "WHERE IDSOCIO = ? " +
+                     "AND FECHALIMITEDEVOLUCION < SYSDATE";
+        
+        try (Connection con = conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            
+            ps.setInt(1, codigoSocio);
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    esMoroso = rs.getInt(1) > 0;  // Si hay préstamos vencidos
+                }
+            }
+        }
+        
+        return esMoroso;
+    }
+
+
 }

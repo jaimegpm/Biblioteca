@@ -60,4 +60,19 @@ public class DaoPrestamo {
 		return listadoPrestamo;
 		 
 	 }
+	 
+	 public boolean realizarPrestamo(int codigoSocio, int codigoEjemplar) throws SQLException {
+		    String sql = "INSERT INTO PRESTAMO (IDSOCIO, IDEJEMPLAR) VALUES (?, ?)";
+		    Conexion conexion = new Conexion();
+		    try (Connection con = conexion.getConexion();
+		         PreparedStatement ps = con.prepareStatement(sql)) {
+		        
+		        ps.setInt(1, codigoSocio);
+		        ps.setInt(2, codigoEjemplar);
+		        
+		        int rowsAffected = ps.executeUpdate();
+		        return rowsAffected > 0;  // Si se insertó un registro correctamente
+		    }
+		}
+
 }

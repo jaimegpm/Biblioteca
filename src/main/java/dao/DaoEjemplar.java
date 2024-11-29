@@ -163,8 +163,100 @@ public class DaoEjemplar {
     }
 
     
-    
+    public ArrayList<Libro> filtrarLibros(String autor, String titulo, String isbn) throws SQLException, Exception {
+        ArrayList<Libro> libros = new ArrayList<>();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        Connection con = null;
 
+        try {
+            // Obtener la conexión
+            Conexion miconex = new Conexion();
+            con = miconex.getConexion();
+
+            // Consulta SQL con parámetros para filtrar libros
+            String query = """
+                    SELECT L.ISBN, L.TITULO, A.NOMBRE AUTOR,
+                           EJEMPLARESTOTALES, EJEMPLARESENPRESTAMO,
+                           (EJEMPLARESTOTALES - EJEMPLARESENPRESTAMO) AS EJEMPLARESDISPONIBLES
+                    FROM LIBRO L, AUTOR A,
+                         (SELECT A.ISBN, EJEMPLARESTOTALES, NVL(EJEMPLARESENPRESTAMO, 0) AS EJEMPLARESENPRESTAMO
+                          FROM (SELECT L.ISBN, COUNT(*) AS EJEMPLARESTOTALES
+                                FROM LIBRO L, EJEMPLAR E
+                                WHERE L.ISBN = E.ISBN
+                                  AND E.BAJA = 'N'
+                                GROUP BY L.ISBN) A
+                          LEFT JOIN (SELECT ISBN, COUNT(*) AS EJEMPLARESENPRESTAMO
+                                     FROM PRESTAMO P, EJEMPLAR E
+                                     WHERE P.IDEJEMPLAR = E.IDEJEMPLAR
+                                     GROUP BY ISBN) B
+                          ON A.ISBN = B.ISBN) B
+                    WHERE L.ISBN = B.ISBN
+                      AND L.IDAUTOR = A.IDAUTOR
+                      AND TRANSLATE(UPPER(A.NOMBRE), 'ÁÉÍÓÚ', 'AEIOU') LIKE TRANSLATE(UPPER(?), 'ÁÉÍÓÚ', 'AEIOU')
+                      AND TRANSLATE(UPPER(L.TITULO), 'ÁÉÍÓÚ', 'AEIOU') LIKE TRANSLATE(UPPER(?), 'ÁÉÍÓÚ', 'AEIOU')
+                      AND L.ISBN LIKE ?
+                    ORDER BY AUTOR, TITULO
+                    """;
+
+            // Crear el PreparedStatement
+            ps = con.prepareStatement(query);
+            ps.setString(1, "%" + (autor != null && !autor.trim().isEmpty() ? autor : "") + "%");
+            ps.setString(2, "%" + (titulo != null && !titulo.trim().isEmpty() ? titulo : "") + "%");
+            ps.setString(3, "%" + (isbn != null && !isbn.trim().isEmpty() ? isbn : "") + "%");
+
+            // Ejecutar la consulta
+            rs = ps.executeQuery();
+
+            // Recorrer los resultados y agregarlos a la lista de libros
+            while (rs.next()) {
+                Libro libro = new Libro();
+                libro.setIsbn(rs.getString("ISBN"));
+                libro.setTitulo(rs.getString("TITULO"));
+                libro.setAutor(rs.getString("AUTOR"));
+                libro.setEjemplaresTotales(rs.getInt("EJEMPLARESTOTALES"));
+                libro.setEjemplaresEnPrestamo(rs.getInt("EJEMPLARESENPRESTAMO"));
+                libro.setEjemplaresDisponibles(rs.getInt("EJEMPLARESDISPONIBLES"));
+                libros.add(libro);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw e;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            // Cerrar los recursos
+            if (rs != null) rs.close();
+            if (ps != null) ps.close();
+            if (con != null) con.close();
+        }
+
+        // Retornar la lista de libros encontrados
+        return libros;
+    }
+
+    public boolean esEjemplarDisponible(int codigoEjemplar) throws SQLException {
+        boolean estaDisponible = false;
+        Conexion conexion = new Conexion();
+        String sql = "SELECT COUNT(*) FROM PRESTAMO " +
+                     "WHERE IDEJEMPLAR = ? " +
+                     "AND FECHALIMITEDEVOLUCION IS NULL";  // Si no tiene fecha de devolución, está prestado
+
+        try (Connection con = conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            
+            ps.setInt(1, codigoEjemplar);
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    estaDisponible = rs.getInt(1) == 0;  // No hay préstamos activos para este ejemplar
+                }
+            }
+        }
+        
+        return estaDisponible;
+    }
 
 
 
