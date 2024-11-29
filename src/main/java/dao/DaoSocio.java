@@ -285,6 +285,59 @@ public class DaoSocio {
         
         return esMoroso;
     }
+    
+    public ArrayList<Socio> listadoSocios(int pagina, int numRegPag) throws SQLException {
+        ArrayList<Socio> socios = new ArrayList<>();
+        String query = """
+            SELECT FILA, IDSOCIO, EMAIL, NOMBRE, DIRECCION
+            FROM (
+                SELECT ROWNUM FILA, IDSOCIO, EMAIL, NOMBRE, DIRECCION
+                FROM (
+                    SELECT IDSOCIO, EMAIL, NOMBRE, DIRECCION
+                    FROM SOCIO
+                    ORDER BY NOMBRE
+                )
+            )
+            WHERE FILA >= ? AND FILA <= ?
+        """;
+
+        try (Connection con = new Conexion().getConexion();
+             PreparedStatement ps = con.prepareStatement(query)) {
+
+            int limiteInferior = (pagina * numRegPag) + 1;
+            int limiteSuperior = (pagina * numRegPag) + numRegPag;
+
+            ps.setInt(1, limiteInferior);
+            ps.setInt(2, limiteSuperior);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Socio socio = new Socio();
+                    socio.setIdsocio(rs.getInt("IDSOCIO"));
+                    socio.setEmail(rs.getString("EMAIL"));
+                    socio.setNombre(rs.getString("NOMBRE"));
+                    socio.setDireccion(rs.getString("DIRECCION"));
+                    socios.add(socio);
+                }
+            }
+        }
+        return socios;
+    }
+    
+    public int contarSocios() throws SQLException {
+        int total = 0;
+        String query = "SELECT COUNT(*) AS TOTAL FROM SOCIO";
+
+        try (Connection con = new Conexion().getConexion();
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            if (rs.next()) {
+                total = rs.getInt("TOTAL");
+            }
+        }
+        return total;
+    }
 
 
 }

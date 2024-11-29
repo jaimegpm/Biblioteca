@@ -330,6 +330,45 @@ public class controlleradmin extends HttpServlet {
                 }
                 break;
 
+            case "listarSocios":
+                // Obtener los parámetros de página actual y registros por página
+                int paginaActual = 0; // Por defecto
+                int registrosPorPagina = 5; // Por defecto
+
+                if (request.getParameter("pag") != null) {
+                    paginaActual = Integer.parseInt(request.getParameter("pag"));
+                }
+                if (request.getParameter("nrp") != null) {
+                    registrosPorPagina = Integer.parseInt(request.getParameter("nrp"));
+                }
+
+                try {
+                    // Obtener el total de registros para cálculo de límites
+                    int totalRegistros = daoSocio.contarSocios();
+
+                    // Calcular límites
+                    int limiteInferior = (paginaActual * registrosPorPagina) + 1;
+                    int limiteSuperior = Math.min((paginaActual * registrosPorPagina) + registrosPorPagina, totalRegistros);
+
+                    // Obtener los socios paginados
+                    ArrayList<Socio> sociosPaginados = daoSocio.listadoSocios(paginaActual, registrosPorPagina);
+
+                    // Establecer atributos para la vista
+                    request.setAttribute("listadoSocios", sociosPaginados);
+                    request.setAttribute("totalRegistros", totalRegistros);
+                    request.setAttribute("limiteInferior", limiteInferior);
+                    request.setAttribute("limiteSuperior", limiteSuperior);
+                    request.setAttribute("paginaActual", paginaActual);
+                    request.setAttribute("registrosPorPagina", registrosPorPagina);
+
+                    // Redirigir al JSP renombrado
+                    request.getRequestDispatcher("admin/sociospaginados.jsp").forward(request, response);
+                } catch (SQLException e) {
+                    request.setAttribute("error", "Error al listar socios: " + e.getMessage());
+                    request.getRequestDispatcher("admin/error.jsp").forward(request, response);
+                }
+                break;
+
         
         }
     }
